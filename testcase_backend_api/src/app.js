@@ -12,11 +12,31 @@ const app = express();
 
 app.use(helmet());
 
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+/**
+ * CORS configuration
+ * - In preview/prod, set ALLOWED_ORIGINS to a comma-separated list.
+ * - In local dev, leaving it empty falls back to '*'.
+ */
+function parseCsvEnv(name) {
+  return (process.env[name] || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+const allowedOrigins = parseCsvEnv('ALLOWED_ORIGINS');
+const allowedMethods = parseCsvEnv('ALLOWED_METHODS');
+const allowedHeaders = parseCsvEnv('ALLOWED_HEADERS');
+const corsMaxAge = process.env.CORS_MAX_AGE ? Number(process.env.CORS_MAX_AGE) : undefined;
+
+app.use(
+  cors({
+    origin: allowedOrigins.length ? allowedOrigins : '*',
+    methods: allowedMethods.length ? allowedMethods : ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: allowedHeaders.length ? allowedHeaders : ['Content-Type', 'Authorization'],
+    maxAge: Number.isFinite(corsMaxAge) ? corsMaxAge : undefined,
+  })
+);
 app.set('trust proxy', true);
 
 app.use(morgan('combined'));
